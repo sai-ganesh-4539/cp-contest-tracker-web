@@ -6,12 +6,21 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   let contests: Contest[] = [];
   let error: string | null = null;
+  let hiddenOngoing = 0;
 
   try {
     contests = await getUpcomingContests();
+    // Sort by start_time ascending
     contests.sort(
       (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
+    // Filter out already-started contests (keep only truly upcoming)
+    const now = Date.now();
+    const upcoming = contests.filter(
+      (c) => new Date(c.start_time).getTime() > now
+    );
+    hiddenOngoing = contests.length - upcoming.length;
+    contests = upcoming;
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to load contests";
   }
@@ -27,6 +36,11 @@ export default async function Home() {
             <p className="text-gray-600">
               Upcoming competitive programming contests across platforms.
             </p>
+            {hiddenOngoing > 0 && !error && (
+              <p className="text-xs text-gray-400 mt-1">
+                +{hiddenOngoing} ongoing competitions hidden
+              </p>
+            )}
           </div>
           {!error && contests.length > 0 && (
             <span className="shrink-0 rounded-full bg-slate-900 px-3 py-1 text-sm font-medium text-white">

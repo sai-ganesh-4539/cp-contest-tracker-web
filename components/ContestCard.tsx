@@ -2,19 +2,33 @@
 import type { Contest } from "@/lib/api";
 
 const PLATFORM_STYLES: Record<string, string> = {
-  Codeforces:  "bg-red-100    text-red-700    border-red-200",
-  CodeChef:    "bg-amber-100  text-amber-700  border-amber-200",
-  AtCoder:     "bg-slate-100  text-slate-700  border-slate-200",
-  LeetCode:    "bg-orange-100 text-orange-700 border-orange-200",
-  CTFtime:     "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Kaggle:      "bg-sky-100    text-sky-700    border-sky-200",
-  HackerRank:  "bg-green-100  text-green-700  border-green-200",
-  HackerEarth: "bg-purple-100 text-purple-700 border-purple-200",
-  TopCoder:    "bg-pink-100   text-pink-700   border-pink-200",
+  // Major CP platforms
+  codeforces:  "bg-red-100    text-red-700    border-red-200",
+  codechef:    "bg-amber-100  text-amber-700  border-amber-200",
+  atcoder:     "bg-slate-100  text-slate-700  border-slate-200",
+  leetcode:    "bg-orange-100 text-orange-700 border-orange-200",
+  // CTF / security
+  ctftime:     "bg-emerald-100 text-emerald-700 border-emerald-200",
+  // Data / ML
+  kaggle:      "bg-sky-100    text-sky-700    border-sky-200",
+  // Chinese platforms
+  ac:          "bg-rose-100   text-rose-700   border-rose-200",
+  uoj:         "bg-violet-100 text-violet-700 border-violet-200",
+  naukri:      "bg-indigo-100 text-indigo-700 border-indigo-200",
+  // Russian / Eastern European
+  cups:        "bg-blue-100   text-blue-700   border-blue-200",
+  basecamp:    "bg-teal-100   text-teal-700   border-teal-200",
+  datsteam:    "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
+  // Other
+  open:        "bg-lime-100   text-lime-700   border-lime-200",
+  wincentdragonbyte: "bg-purple-100 text-purple-700 border-purple-200",
+  projecteuler: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  repovive:    "bg-cyan-100   text-cyan-700   border-cyan-200",
+  midnightcodecup: "bg-stone-100 text-stone-700 border-stone-200",
 };
 
 function formatDuration(minutes: number | null): string {
-  if (!minutes || minutes <= 0) return "Unknown length";
+  if (!minutes || minutes <= 0) return "Self-paced";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}m`;
@@ -43,9 +57,15 @@ function formatStart(iso: string): { absolute: string; relative: string } {
 
 export default function ContestCard({ contest }: { contest: Contest }) {
   const { absolute, relative } = formatStart(contest.start_time);
+  const platformKey = (contest.platform || "").toLowerCase();
   const badgeClass =
-    PLATFORM_STYLES[contest.platform] ??
+    PLATFORM_STYLES[platformKey] ??
     "bg-gray-100 text-gray-700 border-gray-200";
+
+  // Capitalize platform name for display: "codeforces" → "Codeforces"
+  const displayPlatform = contest.platform
+    ? contest.platform.charAt(0).toUpperCase() + contest.platform.slice(1)
+    : "Unknown";
 
   const href = contest.url ?? "#";
 
@@ -60,7 +80,7 @@ export default function ContestCard({ contest }: { contest: Contest }) {
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${badgeClass}`}
         >
-          {contest.platform}
+          {displayPlatform}
         </span>
         <span className="text-xs font-medium text-slate-500">
           {relative}
