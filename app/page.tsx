@@ -1,34 +1,78 @@
+// app/page.tsx
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
 import { getUpcomingContests, Contest } from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
+import FilterBar, { FilterState } from "@/components/FilterBar";
 
-export const dynamic = "force-dynamic";
+export default function Home() {
+  const [contests, setContests] = useState<Contest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function Home() {
-  let contests: Contest[] = [];
-  let error: string | null = null;
-  let hiddenOngoing = 0;
+  const [filters, setFilters] = useState<FilterState>({
+    platform: null,
+    dateRange: 30,  // default to 30 days
+    search: "",
+  });
 
-  try {
-    contests = await getUpcomingContests();
-    // Sort by start_time ascending
-    contests.sort(
-      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    );
-    // Filter out already-started contests (keep only truly upcoming)
-    const now = Date.now();
-    const upcoming = contests.filter(
-      (c) => new Date(c.start_time).getTime() > now
-    );
-    hiddenOngoing = contests.length - upcoming.length;
-    contests = upcoming;
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to load contests";
-  }
+  // Fetch on mount
+  useEffect(() => {
+    getUpcomingContests()
+      .then((data) => {
+        // Sort by start_time ascending
+        data.sort(
+          (a, b) =>
+            new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+        );
+        // Filter out already-started contests
+        const now = Date.now();
+        const upcoming = data.filter(
+          (c) => new Date(c.start_time).getTime() > now
+        );
+        setContests(upcoming);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Failed to load contests");
+        setLoading(false);
+      });
+  }, []);
+
+  // Get platforms present in the data
+  const availablePlatforms = useMemo(() => {
+    return Array.from(new Set(contests.map((c) => c.platform))).filter(Boolean) as string[];
+  }, [contests]);
+
+  // Apply filters
+  const filteredContests = useMemo(() => {
+    return contests.filter((c) => {
+      // Platform filter
+      if (filters.platform && c.platform !== filters.platform) return false;
+
+      // Date range filter
+      if (filters.dateRange !== null) {
+        const contestTime = new Date(c.start_time).getTime();
+        const now = Date.now();
+        const maxTime = now + filters.dateRange * 24 * 60 * 60 * 1000;
+        if (contestTime > maxTime) return false;
+      }
+
+      // Search filter
+      if (filters.search.trim()) {
+        const q = filters.search.toLowerCase();
+        if (!c.name.toLowerCase().includes(q)) return false;
+      }
+
+      return true;
+    });
+  }, [contests, filters]);
 
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-12">
-        <header className="mb-10 flex items-start justify-between gap-4">
+        <header className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               CP Contest Tracker
@@ -36,33 +80,53 @@ export default async function Home() {
             <p className="text-gray-600">
               Upcoming competitive programming contests across platforms.
             </p>
-            {hiddenOngoing > 0 && !error && (
-              <p className="text-xs text-gray-400 mt-1">
-                +{hiddenOngoing} ongoing competitions hidden
-              </p>
-            )}
           </div>
-          {!error && contests.length > 0 && (
+          {!loading && !error && contests.length > 0 && (
             <span className="shrink-0 rounded-full bg-slate-900 px-3 py-1 text-sm font-medium text-white">
               {contests.length} upcoming
             </span>
           )}
         </header>
 
-        {error ? (
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-32 rounded-xl border border-slate-200 bg-white p-5 animate-pulse"
+              >
+                <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
+                <div className="h-4 w-3/4 bg-slate-200 rounded mb-2" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded mt-8" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
             {error}
           </div>
-        ) : contests.length === 0 ? (
-          <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg text-gray-600">
-            No upcoming contests found.
-          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {contests.map((c) => (
-              <ContestCard key={c.id} contest={c} />
-            ))}
-          </div>
+          <>
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              availablePlatforms={availablePlatforms}
+              totalCount={contests.length}
+              filteredCount={filteredContests.length}
+            />
+
+            {filteredContests.length === 0 ? (
+              <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg text-gray-600">
+                No contests match your filters. Try changing the date range or platform.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {filteredContests.map((c) => (
+                  <ContestCard key={c.id} contest={c} />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1">
