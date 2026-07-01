@@ -4,7 +4,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/auth";
+import { login, getToken, getEmail } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { setAuth: syncAuthState } = useAuth(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,8 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result.success) {
-      router.push("/");
+        syncAuthState(getToken()!, getEmail()!);
+        router.push("/");
     } else {
       setError(result.error || "Login failed");
     }

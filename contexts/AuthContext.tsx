@@ -7,32 +7,43 @@ import { getToken, getEmail, clearAuth } from "@/lib/auth";
 interface AuthContextType {
   isAuthenticated: boolean;
   email: string | null;
+  token: string | null;
+  setAuth: (token: string, email: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   email: null,
+  token: null,
+  setAuth: () => {},
   logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsAuthenticated(!!getToken());
+    setToken(getToken());
     setEmail(getEmail());
   }, []);
 
+  const setAuth = (newToken: string, newEmail: string) => {
+    setToken(newToken);
+    setEmail(newEmail);
+  };
+
   const logout = () => {
     clearAuth();
-    setIsAuthenticated(false);
+    setToken(null);
     setEmail(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, email, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated: !!token, email, token, setAuth, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

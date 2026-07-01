@@ -4,7 +4,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signup, login } from "@/lib/auth";
+import { signup, login, getToken, getEmail } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PASSWORD_RULES = {
   minLength: 8,
@@ -32,6 +33,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { setAuth: syncAuthState } = useAuth(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +64,8 @@ export default function SignupPage() {
     setLoading(false);
 
     if (loginResult.success) {
-      router.push("/");
+        syncAuthState(getToken()!, getEmail()!); 
+        router.push("/");
     } else {
       router.push("/login");
     }
