@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { getUpcomingContests, Contest } from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
 import FilterBar, { FilterState } from "@/components/FilterBar";
+import Header from "@/components/Header";
 
 export default function Home() {
   const [contests, setContests] = useState<Contest[]>([]);
@@ -71,6 +72,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <Header />
       <div className="max-w-5xl mx-auto px-4 py-12">
         <header className="mb-6 flex items-start justify-between gap-4">
           <div>
