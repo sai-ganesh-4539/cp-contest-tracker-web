@@ -1,11 +1,12 @@
 // app/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { getUpcomingContests, Contest } from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
 import FilterBar, { FilterState } from "@/components/FilterBar";
 import Header from "@/components/Header";
+import { friendlyError } from "@/lib/errors";
 
 export default function Home() {
   const [contests, setContests] = useState<Contest[]>([]);
@@ -14,20 +15,19 @@ export default function Home() {
 
   const [filters, setFilters] = useState<FilterState>({
     platform: null,
-    dateRange: 30,  // default to 30 days
+    dateRange: 30,
     search: "",
   });
 
-  // Fetch on mount
-  useEffect(() => {
+  const loadContests = useCallback(() => {
+    setLoading(true);
+    setError(null);
     getUpcomingContests()
       .then((data) => {
-        // Sort by start_time ascending
         data.sort(
           (a, b) =>
             new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
         );
-        // Filter out already-started contests
         const now = Date.now();
         const upcoming = data.filter(
           (c) => new Date(c.start_time).getTime() > now
@@ -36,36 +36,32 @@ export default function Home() {
         setLoading(false);
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : "Failed to load contests");
+        setError(friendlyError(e instanceof Error ? e.message : "Failed to load contests"));
         setLoading(false);
       });
   }, []);
 
-  // Get platforms present in the data
+  useEffect(() => {
+    loadContests();
+  }, [loadContests]);
+
   const availablePlatforms = useMemo(() => {
     return Array.from(new Set(contests.map((c) => c.platform))).filter(Boolean) as string[];
   }, [contests]);
 
-  // Apply filters
   const filteredContests = useMemo(() => {
     return contests.filter((c) => {
-      // Platform filter
       if (filters.platform && c.platform !== filters.platform) return false;
-
-      // Date range filter
       if (filters.dateRange !== null) {
         const contestTime = new Date(c.start_time).getTime();
         const now = Date.now();
         const maxTime = now + filters.dateRange * 24 * 60 * 60 * 1000;
         if (contestTime > maxTime) return false;
       }
-
-      // Search filter
       if (filters.search.trim()) {
         const q = filters.search.toLowerCase();
         if (!c.name.toLowerCase().includes(q)) return false;
       }
-
       return true;
     });
   }, [contests, filters]);
@@ -105,7 +101,13 @@ export default function Home() {
           </div>
         ) : error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-            {error}
+            <p className="mb-3">{error}</p>
+            <button
+              onClick={loadContests}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Try again
+            </button>
           </div>
         ) : (
           <>

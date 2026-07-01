@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signup, login, getToken, getEmail } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { friendlyError } from "@/lib/errors";
 
 const PASSWORD_RULES = {
   minLength: 8,
@@ -54,7 +55,7 @@ export default function SignupPage() {
 
     const signupResult = await signup(email, password);
     if (!signupResult.success) {
-      setError(signupResult.error || "Signup failed");
+      setError(friendlyError(signupResult.error || "Signup failed"));
       setLoading(false);
       return;
     }
@@ -67,7 +68,7 @@ export default function SignupPage() {
         syncAuthState(getToken()!, getEmail()!); 
         router.push("/");
     } else {
-      router.push("/login");
+      router.push("/login?error=account-created-login-failed");
     }
   };
 
