@@ -3,11 +3,14 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { getToken, getEmail, clearAuth } from "@/lib/auth";
+import { getMyBookmarks } from "@/lib/api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
   email: string | null;
   token: string | null;
+  bookmarkedIds: Set<string>;
+  refreshBookmarks: () => Promise<void>;
   setAuth: (token: string, email: string) => void;
   logout: () => void;
 }
@@ -16,6 +19,8 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   email: null,
   token: null,
+  bookmarkedIds: new Set(),
+  refreshBookmarks: async () => {},
   setAuth: () => {},
   logout: () => {},
 });
@@ -23,11 +28,32 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setToken(getToken());
     setEmail(getEmail());
   }, []);
+
+  // Fetch bookmarks whenever token changes
+  useEffect(() => {
+    if (!token) {
+      setBookmarkedIds(new Set());
+      return;
+    }
+    refreshBookmarks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  const refreshBookmarks = async () => {
+    if (!token) return;
+    try {
+      const bookmarks = await getMyBookmarks(token);
+      setBookmarkedIds(new Set(bookmarks.map((c) => c.id)));
+    } catch (err) {
+      console.error("Failed to load bookmarks:", err);
+    }
+  };
 
   const setAuth = (newToken: string, newEmail: string) => {
     setToken(newToken);
@@ -38,11 +64,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAuth();
     setToken(null);
     setEmail(null);
+    setBookmarkedIds(new Set());
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated: !!token, email, token, setAuth, logout }}
+      value={{
+        isAuthenticated: !!token,
+        email,
+        token,
+        bookmarkedIds,
+        refreshBookmarks,
+        setAuth,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

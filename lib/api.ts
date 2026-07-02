@@ -20,3 +20,37 @@ export async function getUpcomingContests(): Promise<Contest[]> {
 
   return res.json();
 }
+// ===== Bookmarks =====
+
+export async function bookmarkContest(contestId: string, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/contests/${contestId}/bookmark`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Bookmark failed (${res.status})`);
+  }
+}
+
+export async function unbookmarkContest(contestId: string, token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/contests/${contestId}/bookmark`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Unbookmark failed (${res.status})`);
+  }
+}
+
+export async function getMyBookmarks(token: string): Promise<Contest[]> {
+  const res = await fetch(`${API_BASE}/me/bookmarks`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Fetch bookmarks failed (${res.status})`);
+  }
+  return res.json();
+}
