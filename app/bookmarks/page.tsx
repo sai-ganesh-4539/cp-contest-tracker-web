@@ -11,7 +11,7 @@ import Header from "@/components/Header";
 import { friendlyError } from "@/lib/errors";
 
 export default function BookmarksPage() {
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, isReady, token } = useAuth();   // <-- add isReady
   const router = useRouter();
 
   const [bookmarks, setBookmarks] = useState<Contest[]>([]);
@@ -27,7 +27,6 @@ export default function BookmarksPage() {
     setError(null);
     try {
       const data = await getMyBookmarks(token);
-      // Sort by start_time ascending
       data.sort(
         (a, b) =>
           new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
@@ -41,13 +40,17 @@ export default function BookmarksPage() {
   }, [token]);
 
   useEffect(() => {
-    // Redirect to login if not authenticated
+    // Wait for auth to be hydrated before deciding what to do
+    if (!isReady) return;
     if (!isAuthenticated) {
       router.push("/login");
       return;
     }
     load();
-  }, [isAuthenticated, router, load]);
+  }, [isReady, isAuthenticated, router, load]);
+
+  // Show nothing while auth state is loading (prevents flash of redirect)
+  if (!isReady) return null;
 
   return (
     <main className="min-h-screen bg-gray-50">

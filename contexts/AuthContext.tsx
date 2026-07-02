@@ -7,6 +7,7 @@ import { getMyBookmarks } from "@/lib/api";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isReady: boolean;                    // <-- ADD THIS
   email: string | null;
   token: string | null;
   bookmarkedIds: Set<string>;
@@ -17,6 +18,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
+  isReady: false,                       // <-- ADD THIS
   email: null,
   token: null,
   bookmarkedIds: new Set(),
@@ -28,14 +30,15 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);    // <-- ADD THIS
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setToken(getToken());
     setEmail(getEmail());
+    setIsReady(true);                  // <-- ADD THIS
   }, []);
 
-  // Fetch bookmarks whenever token changes
   useEffect(() => {
     if (!token) {
       setBookmarkedIds(new Set());
@@ -71,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isAuthenticated: !!token,
+        isReady,                         // <-- ADD THIS
         email,
         token,
         bookmarkedIds,

@@ -52,5 +52,7 @@ export async function getMyBookmarks(token: string): Promise<Contest[]> {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.detail || `Fetch bookmarks failed (${res.status})`);
   }
-  return res.json();
+  const data = await res.json();
+  // Backend returns BookmarkResponse[] — extract the nested contest object
+  return data.map((item: { contest: Contest }) => item.contest);
 }
