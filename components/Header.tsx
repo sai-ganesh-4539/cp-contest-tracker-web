@@ -23,6 +23,12 @@ export default function Header() {
         <nav className="flex items-center gap-3 text-sm">
           {isAuthenticated ? (
             <>
+              <Link
+                href="/bookmarks"
+                className="rounded-md px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100"
+              >
+                My Bookmarks
+              </Link>
               <span className="text-slate-600 hidden sm:inline">{email}</span>
               <button
                 onClick={handleLogout}
