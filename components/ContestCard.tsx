@@ -6,6 +6,7 @@ import type { Contest } from "@/lib/api";
 import { bookmarkContest, unbookmarkContest } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { friendlyError } from "@/lib/errors";
+import { getGoogleCalendarUrl } from "@/lib/calendar";
 
 const PLATFORM_STYLES: Record<string, string> = {
   codeforces:  "bg-red-100    text-red-700    border-red-200",
@@ -66,16 +67,16 @@ export default function ContestCard({ contest }: { contest: Contest }) {
     : "Unknown";
 
   const href = contest.url ?? "#";
+  const calUrl = getGoogleCalendarUrl(contest);
 
-  // Bookmark state
   const { isAuthenticated, token, bookmarkedIds, refreshBookmarks } = useAuth();
   const isBookmarked = bookmarkedIds.has(contest.id);
   const [busy, setBusy] = useState(false);
   const [starError, setStarError] = useState<string | null>(null);
 
   const toggleBookmark = async (e: React.MouseEvent) => {
-    e.preventDefault();      // don't trigger card link
-    e.stopPropagation();     // don't bubble up
+    e.preventDefault();
+    e.stopPropagation();
 
     if (!isAuthenticated || !token) {
       setStarError("Log in to bookmark contests");
@@ -99,6 +100,12 @@ export default function ContestCard({ contest }: { contest: Contest }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(calUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -155,9 +162,32 @@ export default function ContestCard({ contest }: { contest: Contest }) {
         {contest.name}
       </h3>
 
-      <div className="mt-auto flex items-center justify-between text-sm text-slate-600">
-        <span>{absolute}</span>
-        <span className="font-medium">{formatDuration(contest.duration_minutes)}</span>
+      <div className="mt-auto flex items-center justify-between text-sm text-slate-600 gap-2">
+        <div className="flex flex-col">
+          <span>{absolute}</span>
+          <span className="font-medium">{formatDuration(contest.duration_minutes)}</span>
+        </div>
+        <button
+          onClick={handleCalendarClick}
+          title="Add to Google Calendar"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            className="h-3.5 w-3.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+            />
+          </svg>
+          Calendar
+        </button>
       </div>
 
       {starError && (
