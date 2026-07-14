@@ -1,7 +1,7 @@
 // components/FilterBar.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 
 export const PLATFORMS = [
   "codeforces",
@@ -74,13 +74,18 @@ export default function FilterBar({
   return (
     <div className="mb-6 space-y-4">
       {/* Platform chips */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label="Filter by platform"
+      >
         <button
           onClick={() => onChange({ ...filters, platform: null })}
+          aria-pressed={filters.platform === null}
           className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
             filters.platform === null
-              ? "bg-slate-900 text-white border-slate-900"
-              : "bg-white text-slate-700 border-slate-300 hover:border-slate-400"
+              ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white"
+              : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
           }`}
         >
           All
@@ -92,10 +97,11 @@ export default function FilterBar({
             <button
               key={p}
               onClick={() => onChange({ ...filters, platform: isActive ? null : p })}
+              aria-pressed={isActive}
               className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
                 isActive
                   ? colorClass
-                  : "bg-white text-slate-700 border-slate-300 hover:border-slate-400"
+                  : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
               }`}
             >
               {PLATFORM_LABELS[p] ?? p}
@@ -106,18 +112,23 @@ export default function FilterBar({
 
       {/* Date range + search */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-500">Show:</span>
+        <div
+          className="flex items-center gap-2"
+          role="group"
+          aria-label="Filter by date range"
+        >
+          <span className="text-sm text-slate-500 dark:text-slate-400">Show:</span>
           {DATE_RANGES.map((range) => {
             const isActive = filters.dateRange === range.days;
             return (
               <button
                 key={range.label}
                 onClick={() => onChange({ ...filters, dateRange: range.days })}
+                aria-pressed={isActive}
                 className={`rounded-md px-2.5 py-1 text-sm font-medium transition ${
                   isActive
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 }`}
               >
                 {range.label}
@@ -131,12 +142,17 @@ export default function FilterBar({
           value={filters.search}
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
           placeholder="Search contests..."
-          className="w-full sm:w-64 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
+          aria-label="Search contests by name"
+          className="w-full sm:w-64 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm placeholder:text-slate-400 focus:border-slate-500 focus:outline-none dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500"
         />
       </div>
 
       {/* Result count */}
-      <div className="text-xs text-slate-500">
+      <div
+        className="text-xs text-slate-500 dark:text-slate-400"
+        role="status"
+        aria-live="polite"
+      >
         Showing {filteredCount} of {totalCount} contests
       </div>
     </div>

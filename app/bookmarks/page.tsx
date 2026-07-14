@@ -1,22 +1,38 @@
 // app/bookmarks/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMyBookmarks, Contest } from "@/lib/api";
 import ContestCard from "@/components/ContestCard";
+import FilterBar, { FilterState } from "@/components/FilterBar";
 import Header from "@/components/Header";
 import { friendlyError } from "@/lib/errors";
 
 export default function BookmarksPage() {
-  const { isAuthenticated, isReady, token } = useAuth();   // <-- add isReady
+  return (
+    <Suspense fallback={null}>
+      <BookmarksInner />
+    </Suspense>
+  );
+}
+
+function BookmarksInner() {
+  const { isAuthenticated, isReady, token, logout } = useAuth();   // fix #2: pull logout
   const router = useRouter();
 
   const [bookmarks, setBookmarks] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // fix #4: FilterBar state — dateRange=null because bookmarks are often past contests
+  const [filters, setFilters] = useState<FilterState>({
+    platform: null,
+    dateRange: null,
+    search: "",
+  });
 
   const load = useCallback(async () => {
     if (!token) {
@@ -33,32 +49,58 @@ export default function BookmarksPage() {
       );
       setBookmarks(data);
     } catch (e) {
-      setError(friendlyError(e instanceof Error ? e.message : "Failed to load bookmarks"));
+      // fix #2: detect 401 and bounce to login instead of leaving the user stuck
+      const err = e as { status?: number; message?: string };
+      const isUnauthorized =
+        err?.status === 401 || /unauthorized|401/i.test(err?.message || "");
+      if (isUnauthorized) {
+        logout();
+        router.push("/login?next=/bookmarks&reason=expired");
+        return;
+      }
+      setError(friendlyError(err?.message || "Failed to load bookmarks"));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, logout, router]);
 
   useEffect(() => {
-    // Wait for auth to be hydrated before deciding what to do
     if (!isReady) return;
     if (!isAuthenticated) {
-      router.push("/login");
+      // fix #10: pass next= so the user lands back here after login
+      router.push("/login?next=/bookmarks");
       return;
     }
     load();
   }, [isReady, isAuthenticated, router, load]);
 
-  // Show nothing while auth state is loading (prevents flash of redirect)
+  // fix #4: derived data for FilterBar
+  const availablePlatforms = useMemo(
+    () =>
+      Array.from(new Set(bookmarks.map((c) => c.platform))).filter(Boolean) as string[],
+    [bookmarks]
+  );
+
+  const filteredBookmarks = useMemo(() => {
+    return bookmarks.filter((c) => {
+      if (filters.platform && c.platform !== filters.platform) return false;
+      if (filters.search.trim()) {
+        const q = filters.search.toLowerCase();
+        if (!c.name.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [bookmarks, filters]);
+
   if (!isReady) return null;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 dark:bg-slate-950">
       <Header />
       <div className="max-w-5xl mx-auto px-4 py-12">
         <header className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookmarks</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2">My Bookmarks</h1>
+          <p className="text-gray-600 dark:text-slate-400">
             Contests you&apos;ve saved to follow up on.
           </p>
         </header>
@@ -68,48 +110,57 @@ export default function BookmarksPage() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 rounded-xl border border-slate-200 bg-white p-5 animate-pulse"
+                className="h-32 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 animate-pulse"
               >
-                <div className="h-4 w-20 bg-slate-200 rounded mb-3" />
-                <div className="h-4 w-3/4 bg-slate-200 rounded mb-2" />
-                <div className="h-3 w-1/2 bg-slate-100 rounded mt-8" />
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+                <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800 rounded mt-8" />
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 dark:bg-red-950/30 dark:border-red-900 dark:text-red-300">
             <p className="mb-3">{error}</p>
             <button
               onClick={load}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
             >
               Try again
             </button>
           </div>
         ) : bookmarks.length === 0 ? (
-          <div className="p-8 bg-white border border-slate-200 rounded-xl text-center">
-            <p className="text-slate-600 mb-4">
+          <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center">
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
               You haven&apos;t bookmarked any contests yet.
             </p>
             <Link
               href="/"
-              className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
             >
               Browse contests
             </Link>
           </div>
         ) : (
           <>
-            <div className="mb-4">
-              <span className="rounded-full bg-slate-900 px-3 py-1 text-sm font-medium text-white">
-                {bookmarks.length} bookmarked
-              </span>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {bookmarks.map((c) => (
-                <ContestCard key={c.id} contest={c} />
-              ))}
-            </div>
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              availablePlatforms={availablePlatforms}
+              totalCount={bookmarks.length}
+              filteredCount={filteredBookmarks.length}
+            />
+
+            {filteredBookmarks.length === 0 ? (
+              <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg text-gray-600 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400">
+                No bookmarks match your filters.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {filteredBookmarks.map((c) => (
+                  <ContestCard key={c.id} contest={c} />
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
