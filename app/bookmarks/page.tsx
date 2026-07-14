@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMyBookmarks, Contest } from "@/lib/api";
+import { getMyBookmarks, Contest, ApiError } from "@/lib/api";   // <-- import ApiError
 import ContestCard from "@/components/ContestCard";
 import FilterBar, { FilterState } from "@/components/FilterBar";
 import Header from "@/components/Header";
@@ -20,14 +20,13 @@ export default function BookmarksPage() {
 }
 
 function BookmarksInner() {
-  const { isAuthenticated, isReady, token, logout } = useAuth();   // fix #2: pull logout
+  const { isAuthenticated, isReady, token, logout } = useAuth();
   const router = useRouter();
 
   const [bookmarks, setBookmarks] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // fix #4: FilterBar state — dateRange=null because bookmarks are often past contests
   const [filters, setFilters] = useState<FilterState>({
     platform: null,
     dateRange: null,
@@ -49,16 +48,14 @@ function BookmarksInner() {
       );
       setBookmarks(data);
     } catch (e) {
-      // fix #2: detect 401 and bounce to login instead of leaving the user stuck
-      const err = e as { status?: number; message?: string };
-      const isUnauthorized =
-        err?.status === 401 || /unauthorized|401/i.test(err?.message || "");
-      if (isUnauthorized) {
+      // Bulletproof 401 detection — works because lib/api.ts now throws ApiError
+      if (e instanceof ApiError && e.status === 401) {
         logout();
         router.push("/login?next=/bookmarks&reason=expired");
         return;
       }
-      setError(friendlyError(err?.message || "Failed to load bookmarks"));
+      const msg = e instanceof Error ? e.message : "Failed to load bookmarks";
+      setError(friendlyError(msg));
     } finally {
       setLoading(false);
     }
@@ -67,14 +64,12 @@ function BookmarksInner() {
   useEffect(() => {
     if (!isReady) return;
     if (!isAuthenticated) {
-      // fix #10: pass next= so the user lands back here after login
       router.push("/login?next=/bookmarks");
       return;
     }
     load();
   }, [isReady, isAuthenticated, router, load]);
 
-  // fix #4: derived data for FilterBar
   const availablePlatforms = useMemo(
     () =>
       Array.from(new Set(bookmarks.map((c) => c.platform))).filter(Boolean) as string[],

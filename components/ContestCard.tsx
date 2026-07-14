@@ -2,8 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Contest } from "@/lib/api";
-import { bookmarkContest, unbookmarkContest } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { bookmarkContest, unbookmarkContest, ApiError, type Contest } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { friendlyError } from "@/lib/errors";
 import { getGoogleCalendarUrl } from "@/lib/calendar";
@@ -69,7 +69,8 @@ export default function ContestCard({ contest }: { contest: Contest }) {
   const href = contest.url ?? "#";
   const calUrl = getGoogleCalendarUrl(contest);
 
-  const { isAuthenticated, token, bookmarkedIds, refreshBookmarks } = useAuth();
+  const { isAuthenticated, token, bookmarkedIds, refreshBookmarks, logout } = useAuth();
+  const router = useRouter();
   const isBookmarked = bookmarkedIds.has(contest.id);
   const [busy, setBusy] = useState(false);
   const [starError, setStarError] = useState<string | null>(null);
@@ -92,6 +93,13 @@ export default function ContestCard({ contest }: { contest: Contest }) {
       }
       await refreshBookmarks();
     } catch (err) {
+      // Token expired mid-session — bounce to login, preserve current page
+      if (err instanceof ApiError && err.status === 401) {
+        const currentPath = window.location.pathname + window.location.search;
+        logout();
+        router.push(`/login?next=${encodeURIComponent(currentPath)}&reason=expired`);
+        return;
+      }
       setStarError(
         friendlyError(err instanceof Error ? err.message : "Bookmark failed")
       );
@@ -127,6 +135,7 @@ export default function ContestCard({ contest }: { contest: Contest }) {
             onClick={toggleBookmark}
             disabled={busy}
             aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+            aria-pressed={isBookmarked}
             title={
               !isAuthenticated
                 ? "Log in to bookmark"
@@ -191,7 +200,7 @@ export default function ContestCard({ contest }: { contest: Contest }) {
       </div>
 
       {starError && (
-        <p className="text-xs text-red-600 mt-1 dark:text-red-400">{starError}</p>
+        <p className="text-xs text-red-600 mt-1 dark:text-red-400" role="alert">{starError}</p>
       )}
     </a>
   );

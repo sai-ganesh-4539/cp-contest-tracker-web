@@ -34,7 +34,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { setAuth: syncAuthState } = useAuth(); 
+  const { setAuth: syncAuthState } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,29 +65,37 @@ export default function SignupPage() {
     setLoading(false);
 
     if (loginResult.success) {
-        syncAuthState(getToken()!, getEmail()!); 
-        router.push("/");
+      // Guard against storage failures (private browsing, sandboxed iframes)
+      const token = getToken();
+      const emailFromStorage = getEmail();
+      if (!token || !emailFromStorage) {
+        setError("Account created, but the session couldn't be saved. Please log in.");
+        router.push("/login");
+        return;
+      }
+      syncAuthState(token, emailFromStorage);
+      router.push("/");
     } else {
       router.push("/login?error=account-created-login-failed");
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <main className="min-h-screen bg-gray-50 dark:bg-slate-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Create account</h1>
-          <p className="text-sm text-slate-600 mb-6">Sign up to bookmark contests.</p>
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">Create account</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">Sign up to bookmark contests.</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 dark:bg-red-950/30 dark:border-red-900 dark:text-red-300">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Email
               </label>
               <input
@@ -96,14 +104,14 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-500 focus:outline-none"
                 placeholder="you@example.com"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Password
               </label>
               <input
@@ -112,20 +120,17 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-500 focus:outline-none"
                 placeholder="••••••••"
                 disabled={loading}
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Min 8 chars, with uppercase, lowercase, and digit
               </p>
             </div>
 
             <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-slate-700 mb-1"
-              >
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Confirm password
               </label>
               <input
@@ -134,7 +139,7 @@ export default function SignupPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-500 dark:focus:border-slate-500 focus:outline-none"
                 placeholder="••••••••"
                 disabled={loading}
               />
@@ -143,15 +148,15 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creating account..." : "Sign up"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
+          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
             Already have an account?{" "}
-            <Link href="/login" className="text-slate-900 underline font-medium">
+            <Link href="/login" className="text-slate-900 dark:text-slate-100 underline font-medium">
               Log in
             </Link>
           </p>

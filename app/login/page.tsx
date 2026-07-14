@@ -25,7 +25,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { setAuth: syncAuthState } = useAuth();
 
-  const next = searchParams.get("next") || "/";
+  const rawNext = searchParams.get("next") || "/";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
   const expired = searchParams.get("reason") === "expired";
 
   const handleSubmit = async (e: React.FormEvent) => {

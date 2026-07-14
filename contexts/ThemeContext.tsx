@@ -17,7 +17,6 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
 
   // On mount: read from localStorage or fall back to system preference
   useEffect(() => {
@@ -27,7 +26,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       setTheme("dark");
     }
-    setMounted(true);
   }, []);
 
   // Apply theme class to <html>
