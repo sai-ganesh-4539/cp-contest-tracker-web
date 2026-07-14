@@ -7,6 +7,7 @@ import ContestCard from "@/components/ContestCard";
 import FilterBar, { FilterState } from "@/components/FilterBar";
 import Header from "@/components/Header";
 import { friendlyError } from "@/lib/errors";
+import Link from "next/link";
 
 export default function Home() {
   const [contests, setContests] = useState<Contest[]>([]);
@@ -133,8 +134,14 @@ export default function Home() {
           </>
         )}
 
-        <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1">
           <span>Data from Codeforces, CodeChef, AtCoder, LeetCode & more.</span>
+          <Link
+            href="/about"
+            className="text-gray-700 underline hover:text-black"
+          >
+            About
+          </Link>
           <a
             href="https://cp-contest-tracker-510u.onrender.com/docs"
             target="_blank"
